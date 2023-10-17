@@ -1,0 +1,55 @@
+buildscript {
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}
+
+plugins {
+    id("org.openrewrite.rewrite") version("6.3.18")
+}
+
+repositories {
+    mavenCentral()
+}
+
+rewrite {
+    activeRecipe("org.openrewrite.java.OrderImports")
+}
+
+dependencies {
+    rewrite platform("org.openrewrite.recipe:rewrite-recipe-bom:2.3.1")
+}
+group "com.example.openrewrite.gradle"
+
+
+wrapper {
+    gradleVersion = "8.4"
+    distributionType = "bin"
+}
+
+subprojects {
+    group = project.rootProject.group
+    apply plugin: "java"
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.register('resolveAndLockAll') {
+        notCompatibleWithConfigurationCache("Filters configurations at execution time")
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks : "$path must be run from the command line with the `--write-locks` flag"
+        }
+        doLast {
+            configurations.findAll {
+                // Add any custom filtering on the configurations to be resolved
+                it.canBeResolved
+            }.each { it.resolve() }
+        }
+    }
+}
